@@ -415,6 +415,7 @@ def getSPPathBetweenLinks(net, pathName, sourceLinkId, destLinkId):
     path = ShortestPaths.getShortestPathBetweenLinks(sourceLink, destinationLink)
     return dta.Path(net, pathName, path)
 
+
 class ShortestPaths(object):
     """
     Shortest path algorithms and various utilities
@@ -423,6 +424,8 @@ class ShortestPaths(object):
     def initialiseMovementCostsWithFFTT(network):
         """Initialize all the movement costs with the edge free flow travel time in min"""
         for edge in network.iterLinks():
+            if edge.isVirtualLink():
+                continue
             for movement in edge.iterOutgoingMovements():
                 movement.cost = edge.getFreeFlowTTInMin()
 
@@ -438,7 +441,7 @@ class ShortestPaths(object):
     def initiaxblizeEdgeCostsWithFFTT(network):
         """Initialize all the edge costs with the edge free flow travel times in minutes"""
         for edge in network.iterLinks():
-            if edge.isLink():
+            if edge.isRoadLink():
                 edge.cost = edge.getFreeFlowTTInMin()
             else:
                 edge.cost = sys.maxint 
@@ -650,12 +653,19 @@ class ShortestPaths(object):
         
         if runSP:
             ShortestPaths.labelCorrectingWithLabelsOnLinks(graph, sourceLink)
-        
+                
         edge = destinationLink
         path = []
         while edge != sourceLink:
             path.insert(0, edge)
             edge = edge.predEdge
+            
+            if (edge == None):
+                # this is a valid outcome with dead-end links
+                dta.DtaLogger.warn("No valid path from %s to %s" % 
+                    (sourceLink, destinationLink))
+                return None
+                
         path.insert(0, edge)
         return path
 
